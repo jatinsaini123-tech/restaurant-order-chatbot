@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="500" viewBox="0 0 700 500" fill="none">
+    <rect width="700" height="500" fill="#0f172a"/>
+    <circle cx="350" cy="220" r="120" fill="#f77f00" opacity="0.2"/>
+    <circle cx="350" cy="220" r="80" fill="#ff6b35" opacity="0.4"/>
+    <text x="350" y="360" font-family="sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">SpiceCraft Bistro</text>
+    <text x="350" y="395" font-family="sans-serif" font-size="16" fill="#cbd5e1" text-anchor="middle">Smart Chatbot Food Ordering &amp; Delivery</text>
+</svg>

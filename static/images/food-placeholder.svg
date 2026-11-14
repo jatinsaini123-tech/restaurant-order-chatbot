@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" fill="none">
+    <rect width="600" height="400" fill="#1e293b"/>
+    <circle cx="300" cy="180" r="80" fill="#ff6b35" opacity="0.15"/>
+    <path d="M300 130 C280 130 260 145 260 170 C260 195 285 210 300 230 C315 210 340 195 340 170 C340 145 320 130 300 130 Z" fill="#ff6b35"/>
+    <text x="300" y="275" font-family="sans-serif" font-size="20" font-weight="bold" fill="#f8fafc" text-anchor="middle">SpiceCraft Bistro Dish</text>
+    <text x="300" y="305" font-family="sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">Freshly Prepared With Premium Ingredients</text>
+</svg>

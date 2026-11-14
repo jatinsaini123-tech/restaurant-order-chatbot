@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}SpiceCraft Bistro | Order Food with AI Chatbot{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5 position-relative overflow-hidden">
+    <div class="container py-lg-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <div class="hero-badge mb-3">
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-semibold shadow-sm">
+                        <i class="bi bi-cpu-fill me-1 text-primary"></i> Powered by Scikit-Learn NLP
+                    </span>
+                </div>
+                <h1 class="display-4 fw-extrabold text-white mb-3 tracking-tight">
+                    Craving Great Food? <br>
+                    <span class="text-gradient">Just Ask Our AI Chatbot!</span>
+                </h1>
+                <p class="lead text-light-50 mb-4 pe-lg-4">
+                    Experience automated food ordering. Chat naturally to explore our menu, get personalized dish recommendations within your budget, and place orders in seconds.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="#menu-section" class="btn btn-primary btn-lg rounded-pill px-4 shadow">
+                        <i class="bi bi-card-list me-1"></i> Explore Menu
+                    </a>
+                    <button class="btn btn-outline-light btn-lg rounded-pill px-4" onclick="openChatbotWithMessage('Show me the menu')">
+                        <i class="bi bi-chat-quote-fill me-1 text-warning"></i> Order with AI
+                    </button>
+                    <a href="{{ url_for('track_page') }}" class="btn btn-dark btn-lg rounded-pill px-4 border">
+                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i> Track Order
+                    </a>
+                </div>
+
+                <!-- Feature Highlights -->
+                <div class="row g-3 mt-4 pt-2 border-top border-secondary-subtle">
+                    <div class="col-sm-4">
+                        <div class="d-flex align-items-center gap-2 text-white">
+                            <i class="bi bi-lightning-charge-fill text-warning fs-4"></i>
+                            <div>
+                                <small class="text-light d-block fw-bold">Intent AI</small>
+                                <span class="text-white-50 small">Natural ordering</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="d-flex align-items-center gap-2 text-white">
+                            <i class="bi bi-wallet2 text-success fs-4"></i>
+                            <div>
+                                <small class="text-light d-block fw-bold">Smart Budget</small>
+                                <span class="text-white-50 small">Under ₹200 / ₹300</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="d-flex align-items-center gap-2 text-white">
+                            <i class="bi bi-shield-check text-info fs-4"></i>
+                            <div>
+                                <small class="text-light d-block fw-bold">100% Verified</small>
+                                <span class="text-white-50 small">Real-time DB sync</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5 text-center position-relative">
+                <div class="hero-image-wrapper p-3">
+                    <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" 
+                         alt="Delicious Food" 
+                         class="img-fluid rounded-4 shadow-lg hero-img"
+                         onerror="this.src='{{ url_for('static', filename='images/hero-fallback.svg') }}'; this.onerror=null;">
+                    <div class="floating-stat-card card shadow-sm p-3 border-0 rounded-4 text-start">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success text-white p-2 px-3 fs-5">
+                                <i class="bi bi-bag-check-fill"></i>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold small text-dark">Live Order Sync</span>
+                                <small class="text-muted">Chatbot updates cart live</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Smart Recommendations Section -->
+<section class="recommendations-section py-5 bg-dark-subtle border-top border-bottom" id="recommendations-section">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+            <div>
+                <span class="badge bg-primary rounded-pill mb-2 px-3 py-1">AI Recommendation Engine</span>
+                <h2 class="fw-bold tracking-tight mb-1">Chef's Highlights & Smart Picks</h2>
+                <p class="text-muted mb-0">Recommended based on popularity, customer ratings, and chef specials.</p>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <button class="btn btn-sm btn-outline-primary rounded-pill rec-filter-btn active" data-type="popular">Bestsellers</button>
+                <button class="btn btn-sm btn-outline-success rounded-pill rec-filter-btn" data-type="veg">🌱 Pure Veg</button>
+                <button class="btn btn-sm btn-outline-warning rounded-pill rec-filter-btn" data-type="budget300">💰 Under ₹300</button>
+            </div>
+        </div>
+
+        <div class="row g-4" id="recommendationsRow">
+            {% for item in featured_items %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card h-100 rec-card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80" 
+                             class="card-img-top rec-img" 
+                             alt="{{ item.name }}"
+                             onerror="this.src='{{ url_for('static', filename='images/food-placeholder.svg') }}'; this.onerror=null;">
+                        <span class="position-absolute top-0 start-0 m-3 badge {{ 'bg-success' if item.is_veg else 'bg-danger' }} rounded-pill">
+                            {{ 'Veg' if item.is_veg else 'Non-Veg' }}
+                        </span>
+                        <span class="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-75 rounded-pill">
+                            <i class="bi bi-star-fill text-warning me-1"></i> {{ item.rating }}
+                        </span>
+                    </div>
+                    <div class="card-body d-flex flex-column p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="fw-bold mb-0 text-dark">{{ item.name }}</h5>
+                            <span class="fs-5 fw-extrabold text-primary">₹{{ "%.0f"|format(item.price) }}</span>
+                        </div>
+                        <p class="small text-muted flex-grow-1">{{ item.description }}</p>
+                        <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+                            <span class="small text-secondary">
+                                <i class="bi bi-tag-fill text-warning me-1"></i> {{ item.category_name }}
+                            </span>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="addToCart({{ item.id }}, 1)">
+                                <i class="bi bi-cart-plus me-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Interactive Food Menu Section -->
+<section class="menu-section py-5" id="menu-section">
+    <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-4">
+            <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2">Our Delicious Menu</span>
+            <h2 class="fw-bold tracking-tight">Explore Dishes Crafted with Passion</h2>
+            <p class="text-muted">Filtered by category, dietary choices, or price. All prices verified with backend database.</p>
+        </div>
+
+        <!-- Filter Controls Bar -->
+        <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 filter-bar">
+            <div class="row g-3 align-items-center">
+                <!-- Search Box -->
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" id="menuSearchInput" placeholder="Search pizza, burger, pasta, paneer...">
+                    </div>
+                </div>
+
+                <!-- Veg / Non-Veg Toggle Filter -->
+                <div class="col-md-4">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="dietRadio" id="dietAll" value="all" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="dietAll">All Dishes</label>
+
+                        <input type="radio" class="btn-check" name="dietRadio" id="dietVeg" value="1">
+                        <label class="btn btn-outline-success btn-sm" for="dietVeg">🟢 Veg Only</label>
+
+                        <input type="radio" class="btn-check" name="dietRadio" id="dietNonVeg" value="0">
+                        <label class="btn btn-outline-danger btn-sm" for="dietNonVeg">🔴 Non-Veg</label>
+                    </div>
+                </div>
+
+                <!-- Fast Reset / Bot Prompt -->
+                <div class="col-md-3 text-md-end">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill w-100" onclick="openChatbotWithMessage('Recommend something under 300 rupees')">
+                        <i class="bi bi-robot me-1"></i> Ask AI for Suggestions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Navigation Tabs -->
+        <div class="d-flex overflow-auto gap-2 pb-3 mb-4 category-tabs-scroll" id="categoryTabs">
+            <button class="btn btn-category active rounded-pill px-4 text-nowrap" data-category="all">
+                <i class="bi bi-grid-fill me-1"></i> All Items
+            </button>
+            {% for cat in categories %}
+            <button class="btn btn-category rounded-pill px-4 text-nowrap" data-category="{{ cat.id }}">
+                {{ cat.name }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Dynamic Menu Grid -->
+        <div class="row g-4" id="menuGrid">
+            <!-- Populated via JavaScript dynamically -->
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-2">Loading freshly prepared menu...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Checkout Modal -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="checkoutModalLabel">
+                    <i class="bi bi-shield-check"></i> Complete Your Delivery Order
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="checkoutForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Customer Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" id="custName" required placeholder="e.g. Rahul Sharma">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control rounded-3" id="custPhone" required placeholder="10-digit mobile number" pattern="[0-9]{10}">
+                            <div class="form-text small">Order confirmation SMS / status tracking will be linked to this number.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Complete Delivery Address <span class="text-danger">*</span></label>
+                            <textarea class="form-control rounded-3" id="custAddress" rows="2" required placeholder="Flat/House No., Building, Street, Landmark, City"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Payment Option</label>
+                            <select class="form-select rounded-3" id="custPayment">
+                                <option value="Cash on Delivery" selected>Cash on Delivery (COD)</option>
+                                <option value="UPI on Delivery">UPI QR Code on Delivery (GPay / PhonePe / Paytm)</option>
+                                <option value="Card on Delivery">Card Swipe Machine on Delivery</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Cooking / Delivery Instructions</label>
+                            <input type="text" class="form-control rounded-3" id="custInstructions" placeholder="e.g. Extra spicy, don't ring bell">
+                        </div>
+                    </div>
+
+                    <!-- Order Summary Box -->
+                    <div class="card bg-light border-0 rounded-3 p-3 mt-4">
+                        <h6 class="fw-bold mb-2">Order Price Summary</h6>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Subtotal:</span>
+                            <span id="modalSubtotal">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>GST (5%):</span>
+                            <span id="modalTax">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2 mt-2">
+                            <span>Amount Payable:</span>
+                            <span class="text-success" id="modalTotal">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div id="checkoutAlert" class="alert alert-danger d-none mt-3" role="alert"></div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold" id="btnPlaceOrder">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" id="placeOrderSpinner"></span>
+                            <i class="bi bi-check-circle-fill me-1"></i> Place Order Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

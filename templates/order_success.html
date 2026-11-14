@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Order Confirmed | SpiceCraft Bistro{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-3">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Header Banner -->
+                <div class="bg-success text-white text-center py-5 px-4 position-relative">
+                    <div class="success-icon-badge mb-3">
+                        <i class="bi bi-check-circle-fill display-3"></i>
+                    </div>
+                    <h2 class="fw-bold tracking-tight mb-1">Order Successfully Placed!</h2>
+                    <p class="mb-0 text-white-50">Thank you, {{ order.user_name }}! The kitchen has received your ticket.</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <!-- Order Code Pill -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center bg-light p-3 rounded-4 border mb-4">
+                        <div>
+                            <span class="small text-muted d-block">Your Unique Order Code:</span>
+                            <span class="fs-4 fw-extrabold text-primary" id="orderCodeText">{{ order.order_code }}</span>
+                        </div>
+                        <div class="mt-2 mt-sm-0 d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="copyOrderCode('{{ order.order_code }}')">
+                                <i class="bi bi-clipboard me-1"></i> Copy Code
+                            </button>
+                            <a href="{{ url_for('track_page', code=order.order_code) }}" class="btn btn-sm btn-primary rounded-pill">
+                                <i class="bi bi-geo-alt me-1"></i> Track Live Status
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Itemized Invoice Breakdown -->
+                    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-receipt text-secondary"></i> Order Invoice Breakdown
+                    </h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-borderless align-middle">
+                            <thead class="table-light small text-muted">
+                                <tr>
+                                    <th>Dish</th>
+                                    <th class="text-center">Price</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr class="border-bottom">
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ item.item_name }}</div>
+                                    </td>
+                                    <td class="text-center">₹{{ "%.2f"|format(item.item_price) }}</td>
+                                    <td class="text-center"><span class="badge bg-secondary rounded-pill">{{ item.quantity }}</span></td>
+                                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(item.subtotal) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="border-top">
+                                <tr>
+                                    <td colspan="3" class="text-end text-muted small">Subtotal:</td>
+                                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(order.subtotal) }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end text-muted small">Restaurant GST (5%):</td>
+                                    <td class="text-end fw-semibold">₹{{ "%.2f"|format(order.tax_amount) }}</td>
+                                </tr>
+                                <tr class="fs-5">
+                                    <td colspan="3" class="text-end fw-bold text-dark">Grand Total:</td>
+                                    <td class="text-end fw-extrabold text-success">₹{{ "%.2f"|format(order.total_amount) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Delivery & Payment Information -->
+                    <div class="row g-3 bg-light p-3 rounded-4 mb-4">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block fw-semibold mb-1">DELIVERY ADDRESS</small>
+                            <p class="small text-dark mb-0">{{ order.user_address }}</p>
+                            <small class="text-secondary d-block mt-1"><i class="bi bi-telephone me-1"></i> {{ order.user_phone }}</small>
+                        </div>
+                        <div class="col-md-6 border-start-md">
+                            <small class="text-muted d-block fw-semibold mb-1">PAYMENT & TIMING</small>
+                            <p class="small text-dark mb-0"><strong>Method:</strong> {{ order.payment_method }}</p>
+                            <p class="small text-dark mb-0"><strong>Status:</strong> <span class="badge bg-warning text-dark">{{ order.status }}</span></p>
+                            <small class="text-secondary d-block mt-1">Placed on: {{ order.created_at }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                        <a href="{{ url_for('track_page', code=order.order_code) }}" class="btn btn-primary btn-lg rounded-pill px-4">
+                            <i class="bi bi-clock-history me-1"></i> Live Order Tracking
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Order More Food
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyOrderCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        alert("Order Code " + code + " copied to clipboard!");
+    });
+}
+</script>
+{% endblock %}

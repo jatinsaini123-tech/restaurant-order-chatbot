@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | SpiceCraft Bistro{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-5">
+    <!-- Top Header Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <span class="badge bg-primary px-3 py-1 rounded-pill mb-1">Administrative Control Center</span>
+            <h2 class="fw-bold tracking-tight mb-0">Restaurant Operations & Analytics</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 bg-light px-3 py-2 rounded-pill border">
+                <i class="bi bi-person-circle fs-5 text-primary"></i>
+                <span class="small fw-semibold text-dark">{{ session.get('admin_user', 'Admin') }}</span>
+                <span class="badge bg-success rounded-pill">Active</span>
+            </div>
+            <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Total Orders -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-primary text-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small text-white-50 d-block fw-semibold">TOTAL ORDERS</span>
+                        <h3 class="fw-extrabold mb-0 mt-1">{{ total_orders }}</h3>
+                    </div>
+                    <div class="fs-1 text-white-50"><i class="bi bi-receipt-cutoff"></i></div>
+                </div>
+                <small class="text-white-50 mt-2 d-block">Lifetime customer orders</small>
+            </div>
+        </div>
+
+        <!-- Total Revenue -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-success text-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small text-white-50 d-block fw-semibold">TOTAL REVENUE</span>
+                        <h3 class="fw-extrabold mb-0 mt-1">₹{{ "%.2f"|format(total_revenue) }}</h3>
+                    </div>
+                    <div class="fs-1 text-white-50"><i class="bi bi-currency-rupee"></i></div>
+                </div>
+                <small class="text-white-50 mt-2 d-block">Excluding cancelled orders</small>
+            </div>
+        </div>
+
+        <!-- Active Kitchen Orders -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-warning text-dark h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small text-black-50 d-block fw-semibold">ACTIVE ORDERS</span>
+                        <h3 class="fw-extrabold mb-0 mt-1">{{ pending_orders }}</h3>
+                    </div>
+                    <div class="fs-1 text-black-50"><i class="bi bi-fire"></i></div>
+                </div>
+                <small class="text-black-50 mt-2 d-block">Pending, Confirmed & Preparing</small>
+            </div>
+        </div>
+
+        <!-- Total Menu Items -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-dark text-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small text-white-50 d-block fw-semibold">TOTAL MENU ITEMS</span>
+                        <h3 class="fw-extrabold mb-0 mt-1">{{ total_items }}</h3>
+                    </div>
+                    <div class="fs-1 text-white-50"><i class="bi bi-egg-fried"></i></div>
+                </div>
+                <small class="text-white-50 mt-2 d-block">Across {{ categories|length }} food categories</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts Section -->
+    <div class="row g-4 mb-4">
+        <!-- Sales by Category (Doughnut Chart) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart-fill text-primary"></i> Category Revenue Distribution
+                </h5>
+                <div class="chart-container" style="position: relative; height: 260px;">
+                    <canvas id="categorySalesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Status Distribution (Bar Chart) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-bar-chart-fill text-success"></i> Order Volume by Status
+                </h5>
+                <div class="chart-container" style="position: relative; height: 260px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Tabs: Orders & Menu Management -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-light border-bottom p-0">
+            <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="adminTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active px-4 py-3 fw-bold border-0" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersPane" type="button" role="tab">
+                        <i class="bi bi-bag-check-fill me-1 text-primary"></i> Orders Management ({{ orders|length }})
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link px-4 py-3 fw-bold border-0" id="menu-tab" data-bs-toggle="tab" data-bs-target="#menuPane" type="button" role="tab">
+                        <i class="bi bi-journal-text me-1 text-warning"></i> Menu Items CRUD ({{ menu_items|length }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="tab-content" id="adminTabContent">
+                <!-- ========================================== -->
+                <!-- TAB 1: ORDERS MANAGEMENT -->
+                <!-- ========================================== -->
+                <div class="tab-pane fade show active" id="ordersPane" role="tabpanel">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                        <h5 class="fw-bold mb-0">Customer Food Orders</h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="orderSearchInput" class="form-control form-control-sm rounded-pill" placeholder="Search order code or customer..." style="max-width: 260px;">
+                            <select id="orderStatusFilter" class="form-select form-select-sm rounded-pill" style="max-width: 180px;">
+                                <option value="all">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Preparing">Preparing</option>
+                                <option value="Ready">Ready</option>
+                                <option value="Out for Delivery">Out for Delivery</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="adminOrdersTable">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Order Code</th>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Amount</th>
+                                    <th>Placed At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in orders %}
+                                <tr data-status="{{ o.status }}">
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ o.order_code }}</span>
+                                    </td>
+                                    <td>{{ o.user_name }}</td>
+                                    <td><small class="text-muted">{{ o.user_phone }}</small></td>
+                                    <td class="fw-bold text-success">₹{{ "%.2f"|format(o.total_amount) }}</td>
+                                    <td><small class="text-muted">{{ o.created_at }}</small></td>
+                                    <td>
+                                        <select class="form-select form-select-sm status-dropdown rounded-pill fw-semibold
+                                                {{ 'bg-warning-subtle text-warning-emphasis' if o.status in ('Pending', 'Preparing') else ('bg-success-subtle text-success-emphasis' if o.status in ('Delivered', 'Confirmed', 'Ready') else 'bg-danger-subtle text-danger-emphasis') }}" 
+                                                onchange="updateOrderStatus({{ o.id }}, this.value)">
+                                            {% for st in ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Cancelled'] %}
+                                            <option value="{{ st }}" {{ 'selected' if o.status == st else '' }}>{{ st }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="viewOrderDetails({{ o.id }})">
+                                            <i class="bi bi-eye me-1"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TAB 2: MENU ITEMS CRUD -->
+                <!-- ========================================== -->
+                <div class="tab-pane fade" id="menuPane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">Menu Dishes & Availability</h5>
+                        <button class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addDishModal">
+                            <i class="bi bi-plus-circle me-1"></i> Add New Dish
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Dish Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Type</th>
+                                    <th>Availability</th>
+                                    <th>Rating</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in menu_items %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ m.name }}</div>
+                                        <small class="text-muted">{{ m.description[:50] }}...</small>
+                                    </td>
+                                    <td><span class="badge bg-secondary rounded-pill">{{ m.category_name }}</span></td>
+                                    <td class="fw-bold text-primary">₹{{ "%.2f"|format(m.price) }}</td>
+                                    <td>
+                                        {% if m.is_veg %}
+                                            <span class="badge bg-success rounded-pill">Veg</span>
+                                        {% else %}
+                                            <span class="badge bg-danger rounded-pill">Non-Veg</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <!-- In-Stock AJAX Switch -->
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" 
+                                                   {{ 'checked' if m.is_available == 1 else '' }}
+                                                   onchange="toggleDishAvailability({{ m.id }})">
+                                            <label class="form-check-label small fw-semibold {{ 'text-success' if m.is_available else 'text-danger' }}">
+                                                {{ 'In Stock' if m.is_available else 'Sold Out' }}
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="small fw-semibold text-warning"><i class="bi bi-star-fill"></i> {{ m.rating }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" onclick='openEditDishModal({{ m|tojson }})' title="Edit Dish">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" onclick="deleteDish({{ m.id }}, '{{ m.name }}')" title="Delete Dish">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: VIEW ORDER DETAILS -->
+<!-- ======================================================== -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-dark text-white rounded-top-4">
+                <h5 class="modal-title fw-bold" id="detailOrderCode">Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="orderDetailsBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: ADD NEW DISH -->
+<!-- ======================================================== -->
+<div class="modal fade" id="addDishModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Add New Menu Dish</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addDishForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Dish Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="dishName" required placeholder="e.g. Tandoori Soya Chaap">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" id="dishCategory" required>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Price (₹) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control rounded-3" id="dishPrice" step="1" min="0" required placeholder="240">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Dietary Type</label>
+                            <select class="form-select rounded-3" id="dishVeg">
+                                <option value="1">🟢 Vegetarian</option>
+                                <option value="0">🔴 Non-Vegetarian</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Availability</label>
+                            <select class="form-select rounded-3" id="dishAvailable">
+                                <option value="1">In Stock</option>
+                                <option value="0">Sold Out</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Description</label>
+                        <textarea class="form-control rounded-3" id="dishDesc" rows="2" placeholder="Fresh ingredients, flavor profile..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Image URL or Filename</label>
+                        <input type="text" class="form-control rounded-3" id="dishImg" placeholder="e.g. soya_chaap.jpg or https://...">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary rounded-pill fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> Save Dish to Menu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: EDIT DISH -->
+<!-- ======================================================== -->
+<div class="modal fade" id="editDishModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-secondary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Edit Dish</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editDishForm">
+                    <input type="hidden" id="editDishId">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Dish Name</label>
+                        <input type="text" class="form-control rounded-3" id="editDishName" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Category</label>
+                            <select class="form-select rounded-3" id="editDishCategory" required>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Price (₹)</label>
+                            <input type="number" class="form-control rounded-3" id="editDishPrice" step="1" min="0" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Dietary Type</label>
+                            <select class="form-select rounded-3" id="editDishVeg">
+                                <option value="1">🟢 Vegetarian</option>
+                                <option value="0">🔴 Non-Vegetarian</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Availability</label>
+                            <select class="form-select rounded-3" id="editDishAvailable">
+                                <option value="1">In Stock</option>
+                                <option value="0">Sold Out</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Description</label>
+                        <textarea class="form-control rounded-3" id="editDishDesc" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Image URL</label>
+                        <input type="text" class="form-control rounded-3" id="editDishImg">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-secondary rounded-pill fw-bold">
+                            <i class="bi bi-save me-1"></i> Update Dish
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}
